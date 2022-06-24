@@ -1,16 +1,16 @@
-from craiglist.craiglist_base import PercentileCutoffRule, VisDialogueData
-from craiglist.craiglist_dataset import CraiglistListDataset
-from craiglist.craiglist_env import craiglistEnvironment, craiglistRemotePolicy
+from craigslist.craiglist_base import PercentileCutoffRule, VisDialogueData
+from craigslist.craiglist_dataset import CraiglistListDataset
+from craigslist.craiglist_env import craiglistEnvironment, craiglistRemotePolicy
 from load_objects import *
 import pickle as pkl
-from craiglist.craiglist_evaluator import TopAdvantageUtterances, VisDial_Chai_Evaluator, VisDial_DT_Evaluator, VisDial_IQL_Evaluator, Utterance_VisDial_IQL_Evaluator
+from craisglist.craiglist_evaluator import TopAdvantageUtterances, VisDial_Chai_Evaluator, VisDial_DT_Evaluator, VisDial_IQL_Evaluator, Utterance_VisDial_IQL_Evaluator
 
 @register('percentile_cutoff_rule')
 def load_percentile_cutoff_rule(config, verbose=True):
     return PercentileCutoffRule(config['goal_value'],
                                 config['percentile'])
 
-@register('craiglist')
+@register('craigslist')
 def load_craiglist(config, verbose=True):
     if config['additional_scenes'] is not None:
         with open(convert_path(config['additional_scenes']), 'rb') as f:
@@ -39,7 +39,7 @@ def load_craiglist_list_dataset(config, device, verbose=True):
                               top_p=config['top_p'],
                               bottom_p=config['bottom_p'])
 
-@register('craiglist_env')
+@register('craigslist_env')
 def load_craiglist_env(config, device, verbose=True):
     dataset = load_item(config['dataset'], device, verbose=verbose)
     return CraigslistEnvironment(dataset, config['url'],
@@ -49,7 +49,7 @@ def load_craiglist_env(config, device, verbose=True):
                          yn_reward=config['yn_reward'],
                          yn_reward_kind=config['yn_reward_kind'])
 
-@register('craiglist_remote_policy')
+@register('craigslist_remote_policy')
 def load_vis_dial_remote_policy(config, device, verbose=True):
     return VDRemotePolicy(config['url'])
 
