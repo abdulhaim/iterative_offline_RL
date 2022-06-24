@@ -22,14 +22,9 @@ def register(name):
     return add_f
 
 def load_item(config, *args, verbose=True):
-    print("REGISTRY", registry)
-
     config = config.copy()
     name = config.pop('name')
-    print("CONFIG", config)
     if name not in registry:
-        print(name)
-        print("REGISTRY", registry)
         raise NotImplementedError
     if 'cache_id' in config:
         if (name, config['cache_id']) in cache:

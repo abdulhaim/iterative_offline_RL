@@ -9,11 +9,7 @@ train_dataset:
   cache_id: d_train
   data:
     reward_cache:
-    mode: env_stops
-    cutoff_rule:
-      name: percentile_cutoff_rule
-      goal_value: 1.0
-      percentile: 0.5
+    mode: agent_stops
     yn_reward: -2.0
     yn_reward_kind: hard
 
@@ -21,11 +17,7 @@ eval_dataset:
   cache_id: d_eval
   data:
     reward_cache:
-    mode: env_stops
-    cutoff_rule:
-      name: percentile_cutoff_rule
-      goal_value: 1.0
-      percentile: 0.5
+    mode: agent_stops
     yn_reward: -2.0
     yn_reward_kind: hard
 
