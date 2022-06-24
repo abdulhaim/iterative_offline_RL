@@ -1,12 +1,8 @@
 # defaults:
 #   - /cutoff_rule: percentile_cutoff_rule
-name: vis_dial
+name: craigslist
 data_path: data/craigslist/train.json
-split: train
-norm_img_feats: true
+cache_path: null
 reward_shift: 0.0
 reward_scale: 1.0
-mode: 10_stop
-cutoff_rule: null
-yn_reward: 0.0
-yn_reward_kind: none
+reward_f: null
