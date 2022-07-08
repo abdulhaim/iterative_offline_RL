@@ -97,7 +97,7 @@ class SellerEvent(Event):
 
 @dataclass
 class StopEvent(Event):
-    progress: float
+    final_reward: float
     scene: Scene
     prev: Optional[Event]
     next: Optional[Event]
@@ -111,48 +111,70 @@ class Scene:
     events: List[Event]
     initial_val: Optional[float]
 
-    @classmethod
-    def from_json(cls, scene_json, reward, progress):
-        events = []
-        for i in range(len(scene_json['events'][:-1])):
-            if scene_json['events'][i]['agent'] == 0:
-                events.append(BuyerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
-                                            scene_json['events'][i]['time'], 0.0,  None, None, None))
-            else:
-                events.append(SellerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
-                                            scene_json['events'][i]['time'], 0.0,  None, None, None))
-
-        scene = cls(events, 0.0 if progress is None else progress[0])
-        for p, n in zip(events[:-1], events[1:]):
-            p.next = n
-            n.prev = p
-        for ev in events:
-            ev.scene = scene
-        return scene
+    # @classmethod
+    # def from_json(cls, scene_json, reward, progress):
+    #     events = []
+    #     for i in range(len(scene_json['events'][:-1])):
+    #         if type(scene_json['events'][i]['data']) == dict():
+    #         if scene_json['events'][i]['agent'] == 0:
+    #             events.append(BuyerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
+    #                                         scene_json['events'][i]['time'], 0.0,  None, None, None))
+    #         else:
+    #             events.append(SellerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
+    #                                         scene_json['events'][i]['time'], 0.0,  None, None, None))
+    #
+    #     scene = cls(events, 0.0 if progress is None else progress[0])
+    #     for p, n in zip(events[:-1], events[1:]):
+    #         p.next = n
+    #         n.prev = p
+    #     for ev in events:
+    #         ev.scene = scene
+    #     return scene
 
     @classmethod
     def from_json_stops(cls, scene_json, reward, progress):
+        scenes = []
         events = []
         for i in range(len(scene_json['events'])):
-            if scene_json['events'][i]['agent'] == 0:
-                events.append(BuyerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
-                                            scene_json['events'][i]['time'], 0.0,  None, None, None))
+            if str(scene_json['events'][i]['data']).find("{'price") != -1:
+                events.append(StopEvent(scene_json['events'][i]['data']['price'], None, None, None))
+                scene = cls(events, 0.0 if progress is None else progress)
+                for p, n in zip(events[:-1], events[1:]):
+                    p.next = n
+                    n.prev = p
+                for ev in events:
+                    ev.scene = scene
+                scenes.append(scene)
+                break
+            elif str(scene_json['events'][i]['data']).find("{'price") == -1 and i == len(scene_json['events'])-1:
+                events.append(StopEvent(0, None, None, None))
+                scene = cls(events, 0.0 if progress is None else progress)
+                for p, n in zip(events[:-1], events[1:]):
+                    p.next = n
+                    n.prev = p
+                for ev in events:
+                    ev.scene = scene
+                scenes.append(scene)
+                break
+            elif scene_json['events'][i]['agent'] == 0:
+                if type(scene_json['events'][i]['data']) == dict:
+                    continue
+                elif scene_json['events'][i]['data'] == None:
+                    continue
+                else:
+                    events.append(BuyerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
+                                                scene_json['events'][i]['time'], 0.0,  None, None, None))
             elif scene_json['events'][i]['agent'] == 1:
-                events.append(SellerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
-                                            scene_json['events'][i]['time'], 0.0,  None, None, None))
+                if type(scene_json['events'][i]['data']) == dict:
+                    continue
+                elif scene_json['events'][i]['data'] == None:
+                    continue
+                else:
+                    events.append(SellerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
+                                                scene_json['events'][i]['time'], 0.0,  None, None, None))
             else:
                 events.append(StopEvent(0.0, None, None, None))
-
-
-        scene = cls(events, 0.0 if progress is None else progress[0])
-        for p, n in zip(events[:-1], events[1:]):
-            p.next = n
-            n.prev = p
-        for ev in events:
-            ev.scene = scene
-        return [scene]
-
-
+        return scenes
 class CraigslistDialogueData:
     def __init__(self, data_path: str,
                  reward_cache: Optional[str] = None,
@@ -173,7 +195,6 @@ class CraigslistDialogueData:
         else:
             progress = None
             reward = None
-        print(mode)
         if mode == 'agent_stops':
             self.scenes = sum([Scene.from_json_stops(data[i],
                                                      reward if reward is None else reward[i],

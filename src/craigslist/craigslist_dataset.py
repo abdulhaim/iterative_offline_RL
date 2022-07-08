@@ -18,7 +18,7 @@ class CraigslistDataset(List_RL_Dataset):
         self.data = data
         self.datapoints = []
         for item in self.data:
-            obs = CraigslistObservation(item, item.events[-1])
+            obs = CraigslistObservation(item, item.events)
             self.datapoints.append(DataPoint.from_obs(obs, self.tokenizer, self.token_reward))
         if bottom_p is not None:
             total_rs = [sum(item.rewards) for item in self.datapoints]

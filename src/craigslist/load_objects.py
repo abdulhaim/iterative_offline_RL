@@ -19,11 +19,10 @@ def load_craigslist(config, verbose=True):
 def load_craigslist_list_dataset(config, device, verbose=True):
     craigslist = load_item(config['data'], verbose=verbose)
     token_reward = load_item(config['token_reward'], device, verbose=verbose)
-    print(craigslist)
     return CraigslistDataset(craigslist, max_len=config['max_len'],
-                                              token_reward=token_reward,
-                                              top_p=config['top_p'],
-                                              bottom_p=config['bottom_p'])
+                                         token_reward=token_reward,
+                                         top_p=config['top_p'],
+                                         bottom_p=config['bottom_p'])
 
 @register('craigslist_env')
 def load_craigslist_env(config, device, verbose=True):

@@ -21,14 +21,16 @@ class CraigslistObservation(Language_Observation):
         return CraigslistObservation(self.scene, ev)
 
     def to_sequence(self) -> Tuple[List[Tuple[str, Optional[float]]], bool]:
-        evs = self.event.get_events()
+        if self.event is None:
+            return [(self.scene.caption, None)], False
+        evs = self.event[0].get_events()
         sequence = []
         sequence += [(str(evs[i]), evs[i + 1].reward if isinstance(evs[i + 1], BuyerEvent) else None) for i in
                      range(len(evs) - 1)]
         sequence += [(str(evs[i]), evs[i + 1].reward if isinstance(evs[i + 1], SellerEvent) else None) for i in
                      range(len(evs) - 1)]
         sequence += [(str("offer"), 0.0 if isinstance(evs[-1], StopEvent) else None)]
-        terminal = self.event.is_final()
+        terminal = self.event[0].is_final()
         return sequence, terminal
 
     def __str__(self) -> str:
@@ -43,7 +45,7 @@ class CraigslistEnvironment(Language_Environment):
                  reward_scale: float = 1.0, actor_stop: bool = False, yn_reward: float = -2.0,
                  yn_reward_kind: str = 'none'):
         self.dataset = dataset
-        self.remote_env = VDEnvRemoteWrapper(url)
+        self.remote_env = CraigslistEnvRemoteWrapper(url)
         self.state = self.reset()
         self.reward_shift = reward_shift
         self.reward_scale = reward_scale
@@ -95,10 +97,10 @@ class CraigslistEnvRemoteWrapper:
         history = []
         if obs.event is not None:
             for item in obs.event.get_events():
-                if isinstance(item, QuestionEvent):
-                    history.append({'speaker': 'question', 'text': item.question})
-                elif isinstance(item, AnswerEvent):
-                    history.append({'speaker': 'answer', 'text': item.answer})
+                if isinstance(item, BuyerEvent):
+                    history.append({'speaker': 'buyer', 'text': item.text})
+                elif isinstance(item, SellerEvent):
+                    history.append({'speaker': 'seler', 'text': item.text})
                 else:
                     raise NotImplementedError
         payload = {'history': json.dumps(history),
@@ -116,10 +118,10 @@ class CraigslistRemotePolicy(Policy):
         history = []
         if obs.event is not None:
             for item in obs.event.get_events():
-                if isinstance(item, QuestionEvent):
-                    history.append({'speaker': 'question', 'text': item.question})
+                if isinstance(item, BuyerEvent):
+                    history.append({'speaker': 'buyer', 'text': item.text})
                 elif isinstance(item, AnswerEvent):
-                    history.append({'speaker': 'answer', 'text': item.answer})
+                    history.append({'speaker': 'seller', 'text': item.text})
                 else:
                     raise NotImplementedError
         payload = {'history': json.dumps(history),
