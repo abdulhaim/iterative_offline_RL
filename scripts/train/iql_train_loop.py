@@ -37,7 +37,6 @@ def train(cfg):
             wandb.init(project=wandb_cfg['wandb_project'], config=cfg)
         accelerator.wait_for_everyone()
 
-    print("TRAIN DATASET", cfg['train_dataset'])
     raw_dataset_train = load_item(cfg['train_dataset'], system_cfg['device'])
     raw_dataset_eval = load_item(cfg['eval_dataset'], system_cfg['device'])
     if isinstance(raw_dataset_train, Iterable_RL_Dataset):

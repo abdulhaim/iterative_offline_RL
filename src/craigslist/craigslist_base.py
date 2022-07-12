@@ -7,34 +7,6 @@ import h5py
 from sklearn.preprocessing import normalize
 from abc import ABC, abstractmethod
 
-N_TURNS = 10
-
-
-def hard_yn_reward(text):
-    text = text.lower()
-    return text == 'yes' or text == 'no'
-
-
-def soft_yn_reward(text):
-    text = text.lower()
-    return 'yes' in text or 'no' in text
-
-
-def conservative_yn_reward(text):
-    text = text.lower()
-    key_words = ['not', 'don\'t', 'can\'t',
-                 'don’t', 'can’t',
-                 'cannot', 'fairly',
-                 'could', 'think so',
-                 'okay', 'maybe',
-                 'yes', 'no',
-                 'looks', 'appears',
-                 'tell', 'mostly just']
-    return any([word in text for word in key_words])
-
-
-yn_reward_fs = {'none': None, 'soft': soft_yn_reward, 'hard': hard_yn_reward, 'conservative': conservative_yn_reward}
-
 @dataclass
 class Event:
     def append(self, ev: Event, link_forward=False):
@@ -108,53 +80,36 @@ class StopEvent(Event):
 
 @dataclass
 class Scene:
+    description: str
+    target_reward: float
     events: List[Event]
     initial_val: Optional[float]
 
-    # @classmethod
-    # def from_json(cls, scene_json, reward, progress):
-    #     events = []
-    #     for i in range(len(scene_json['events'][:-1])):
-    #         if type(scene_json['events'][i]['data']) == dict():
-    #         if scene_json['events'][i]['agent'] == 0:
-    #             events.append(BuyerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
-    #                                         scene_json['events'][i]['time'], 0.0,  None, None, None))
-    #         else:
-    #             events.append(SellerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
-    #                                         scene_json['events'][i]['time'], 0.0,  None, None, None))
-    #
-    #     scene = cls(events, 0.0 if progress is None else progress[0])
-    #     for p, n in zip(events[:-1], events[1:]):
-    #         p.next = n
-    #         n.prev = p
-    #     for ev in events:
-    #         ev.scene = scene
-    #     return scene
-
     @classmethod
-    def from_json_stops(cls, scene_json, reward, progress):
-        scenes = []
+    def from_json(cls, scene_json, reward, progress):
         events = []
+        description = scene_json['scenario']['kbs'][0]['item']['Description'][0]
+        seller_price = scene_json['scenario']['kbs'][0]['item']['Price']
+        title =  scene_json['scenario']['kbs'][0]['item']['Title']
+        buyer_price = scene_json['scenario']['kbs'][0]['personal']['Target']
         for i in range(len(scene_json['events'])):
             if str(scene_json['events'][i]['data']).find("{'price") != -1:
                 events.append(StopEvent(scene_json['events'][i]['data']['price'], None, None, None))
-                scene = cls(events, 0.0 if progress is None else progress)
+                scene = cls(description, seller_price*0.8, events, 0.0 if progress is None else progress)
                 for p, n in zip(events[:-1], events[1:]):
                     p.next = n
                     n.prev = p
                 for ev in events:
                     ev.scene = scene
-                scenes.append(scene)
                 break
             elif str(scene_json['events'][i]['data']).find("{'price") == -1 and i == len(scene_json['events'])-1:
                 events.append(StopEvent(0, None, None, None))
-                scene = cls(events, 0.0 if progress is None else progress)
+                scene = cls(description, seller_price*0.8, events, 0.0 if progress is None else progress)
                 for p, n in zip(events[:-1], events[1:]):
                     p.next = n
                     n.prev = p
                 for ev in events:
                     ev.scene = scene
-                scenes.append(scene)
                 break
             elif scene_json['events'][i]['agent'] == 0:
                 if type(scene_json['events'][i]['data']) == dict:
@@ -174,17 +129,14 @@ class Scene:
                                                 scene_json['events'][i]['time'], 0.0,  None, None, None))
             else:
                 events.append(StopEvent(0.0, None, None, None))
-        return scenes
+        return scene
 class CraigslistDialogueData:
     def __init__(self, data_path: str,
                  reward_cache: Optional[str] = None,
                  reward_shift: float = 0.0,
                  reward_scale: float = 1.0,
-                 mode: str = 'env_stops',
-                 yn_reward: float = -2.0, yn_reward_kind: str = 'none'):
+                 mode: str = 'env_stops'):
         assert mode in ['agent_stops']
-        assert yn_reward_kind in yn_reward_fs
-        yn_reward_f = yn_reward_fs[yn_reward_kind]
         with open(data_path, 'r') as f:
             data = json.load(f)
         if reward_cache is not None:
@@ -196,9 +148,8 @@ class CraigslistDialogueData:
             progress = None
             reward = None
         if mode == 'agent_stops':
-            self.scenes = sum([Scene.from_json_stops(data[i],
-                                                     reward if reward is None else reward[i],
-                                                     progress[i] if progress is not None else None) for i in range(len(data))], [])
+            self.scenes = [Scene.from_json(data[i],  reward if reward is None else reward[i],
+                                                     progress[i] if progress is not None else None) for i in range(len(data))]
         else:
             raise NotImplementedError
 

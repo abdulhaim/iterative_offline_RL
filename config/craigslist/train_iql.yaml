@@ -84,8 +84,8 @@ train:
   bsize: 1
   grad_accum_steps: 64
   log_every: 256
-  eval_every: 4096
-  save_every: 32768
+  eval_every: 10
+  save_every: 1000
   max_checkpoints: 1
   eval_bsize: 1
   eval_batches: 32
