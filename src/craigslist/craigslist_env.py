@@ -25,7 +25,7 @@ class CraigslistObservation(Language_Observation):
             return [(self.scene.description, None)], False
         evs = self.event.get_events()
         sequence = []
-        sequence += [(str(evs[i]), evs[i + 1].final_reward if isinstance(evs[i + 1], SellerEvent) else None) for i in
+        sequence += [(str(evs[i]), evs[i + 1].reward if isinstance(evs[i + 1], SellerEvent) else None) for i in
                      range(len(evs) - 1)]
         sequence += [(str("offer"), evs[-1].final_reward if isinstance(evs[-1], StopEvent) else None)]
         terminal = self.event.is_final()
