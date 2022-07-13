@@ -8,7 +8,6 @@ from craigslist.craigslist_evaluator import TopAdvantageUtterances, Craigslist_C
 @register('craigslist')
 def load_craigslist(config, verbose=True):
     return CraigslistDialogueData(convert_path(config['data_path']),
-                                  reward_cache=convert_path(config['reward_cache']),
                                   mode=config['mode'])
 
 @register('craigslist_list_dataset')
@@ -30,7 +29,7 @@ def load_craigslist_env(config, device, verbose=True):
 def load_craigslist_remote_policy(config, device, verbose=True):
     return VDRemotePolicy(config['url'])
 
-@register('top_advantage_utterances_evaluator')
+@register('top_advantage_utterreward_cacheances_evaluator')
 def load_top_advantage_utterances_evaluator(config, device, verbose=True):
     data = load_item(config['data'], device, verbose=verbose)
     return TopAdvantageUtterances(data)

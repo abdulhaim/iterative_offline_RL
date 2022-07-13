@@ -133,10 +133,7 @@ class Scene:
 class CraigslistDialogueData:
     def __init__(self, data_path: str,
                  reward_cache: Optional[str] = None,
-                 reward_shift: float = 0.0,
-                 reward_scale: float = 1.0,
                  mode: str = 'env_stops'):
-        assert mode in ['agent_stops']
         with open(data_path, 'r') as f:
             data = json.load(f)
         if reward_cache is not None:

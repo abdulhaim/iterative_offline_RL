@@ -10,16 +10,12 @@ train_dataset:
   data:
     reward_cache:
     mode: agent_stops
-    yn_reward: -2.0
-    yn_reward_kind: hard
 
 eval_dataset:
   cache_id: d_eval
   data:
     reward_cache:
     mode: agent_stops
-    yn_reward: -2.0
-    yn_reward_kind: hard
 
 model:
   alpha: 0.005
@@ -84,7 +80,7 @@ train:
   bsize: 1
   grad_accum_steps: 64
   log_every: 256
-  eval_every: 10
+  eval_every: 10000
   save_every: 1000
   max_checkpoints: 1
   eval_bsize: 1

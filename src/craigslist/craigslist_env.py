@@ -16,7 +16,6 @@ class CraigslistObservation(Language_Observation):
         if self.event is not None:
             ev = self.event.append(ev)
         elif ev is not None:
-            print("IN")
             ev.scene = self.scene
         return CraigslistObservation(self.scene, ev)
 
@@ -45,8 +44,9 @@ class CraigslistEnvironment(Language_Environment):
         self.actor_stop = actor_stop
 
     def step(self, action: str) -> Tuple[CraigslistObservation, float, bool]:
-        print("action", action)
+        print("Enter Buyer Response:")
         buyer_input = input()
+        print(action)
 
         if self.state.event is not None and self.state.event.is_final():
             raise Exception("Cannot step after final action")
