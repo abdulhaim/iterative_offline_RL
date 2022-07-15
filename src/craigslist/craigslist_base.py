@@ -1,11 +1,7 @@
 from __future__ import annotations
-from dataclasses import dataclass, replace
-import numpy as np
+from dataclasses import dataclass
 from typing import List, Optional
 import json
-import h5py
-from sklearn.preprocessing import normalize
-from abc import ABC, abstractmethod
 
 @dataclass
 class Event:
@@ -35,8 +31,8 @@ class Event:
     def get_all_events(self):
         return self.get_events() + self.get_events('next')[1:]
 
-    def is_final(self):
-        return isinstance(self, StopEvent)
+    # def is_final(self):
+    #     return isinstance(self, StopEvent)
 
 
 @dataclass
@@ -67,51 +63,49 @@ class SellerEvent(Event):
         return self.text
 
 
-@dataclass
-class StopEvent(Event):
-    final_reward: float
-    scene: Scene
-    prev: Optional[Event]
-    next: Optional[Event]
+# @dataclass
+# class StopEvent(Event):
+#     final_reward: float
+#     scene: Scene
+#     prev: Optional[Event]
+#     next: Optional[Event]
 
-    def __str__(self):
-        return '<stop>'
-
+#     def __str__(self):
+#         return '<stop>'
 
 @dataclass
 class Scene:
     description: str
     target_reward: float
     events: List[Event]
-    initial_val: Optional[float]
 
     @classmethod
-    def from_json(cls, scene_json, reward, progress):
+    def from_json(cls, scene_json):
         events = []
         description = scene_json['scenario']['kbs'][0]['item']['Description'][0]
         seller_price = scene_json['scenario']['kbs'][0]['item']['Price']
         title =  scene_json['scenario']['kbs'][0]['item']['Title']
         buyer_price = scene_json['scenario']['kbs'][0]['personal']['Target']
         for i in range(len(scene_json['events'])):
-            if str(scene_json['events'][i]['data']).find("{'price") != -1:
-                events.append(StopEvent(scene_json['events'][i]['data']['price'], None, None, None))
-                scene = cls(description, seller_price*0.8, events, 0.0 if progress is None else progress)
-                for p, n in zip(events[:-1], events[1:]):
-                    p.next = n
-                    n.prev = p
-                for ev in events:
-                    ev.scene = scene
-                break
-            elif str(scene_json['events'][i]['data']).find("{'price") == -1 and i == len(scene_json['events'])-1:
-                events.append(StopEvent(0, None, None, None))
-                scene = cls(description, seller_price*0.8, events, 0.0 if progress is None else progress)
-                for p, n in zip(events[:-1], events[1:]):
-                    p.next = n
-                    n.prev = p
-                for ev in events:
-                    ev.scene = scene
-                break
-            elif scene_json['events'][i]['agent'] == 0:
+            # if str(scene_json['events'][i]['data']).find("{'price") != -1:
+            #     events.append(StopEvent(scene_json['events'][i]['data']['price'], None, None, None))
+            #     scene = cls(description, seller_price*0.8, events)
+            #     for p, n in zip(events[:-1], events[1:]):
+            #         p.next = n
+            #         n.prev = p
+            #     for ev in events:
+            #         ev.scene = scene
+            #     break
+            # elif str(scene_json['events'][i]['data']).find("{'price") == -1 and i == len(scene_json['events'])-1:
+            #     events.append(StopEvent(0, None, None, None))
+            #     scene = cls(description, seller_price*0.8, events)
+            #     for p, n in zip(events[:-1], events[1:]):
+            #         p.next = n
+            #         n.prev = p
+            #     for ev in events:
+            #         ev.scene = scene
+            #     break
+            if scene_json['events'][i]['agent'] == 0:
                 if type(scene_json['events'][i]['data']) == dict:
                     continue
                 elif scene_json['events'][i]['data'] == None:
@@ -127,32 +121,24 @@ class Scene:
                 else:
                     events.append(SellerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
                                                 scene_json['events'][i]['time'], 0.0,  None, None, None))
-            else:
-                events.append(StopEvent(0.0, None, None, None))
+            # else:
+            #     events.append(StopEvent(0.0, None, None, None))
+        scene = cls(description, seller_price*0.8, events)
+        for p, n in zip(events[:-1], events[1:]):
+            p.next = n
+            n.prev = p
+        for ev in events:
+            ev.scene = scene
         return scene
+
 class CraigslistDialogueData:
-    def __init__(self, data_path: str,
-                 reward_cache: Optional[str] = None,
-                 mode: str = 'env_stops'):
+    def __init__(self, data_path: str):
         with open(data_path, 'r') as f:
             data = json.load(f)
-        if reward_cache is not None:
-            with open(reward_cache, 'r') as f:
-                reward = json.load(f)
-            progress = reward
-            reward = [[item * reward_scale + reward_shift for item in rs[1:]] for rs in reward]
-        else:
-            progress = None
-            reward = None
-        if mode == 'agent_stops':
-            self.scenes = [Scene.from_json(data[i],  reward if reward is None else reward[i],
-                                                     progress[i] if progress is not None else None) for i in range(len(data))]
-        else:
-            raise NotImplementedError
+        self.scenes = list(filter(lambda x: len(x.events) > 0, [Scene.from_json(data[i]) for i in range(len(data))]))
 
     def __len__(self):
         return len(self.scenes)
 
     def __getitem__(self, i):
         return self.scenes[i]
-

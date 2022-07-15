@@ -2,7 +2,3 @@
 #   - /cutoff_rule: percentile_cutoff_rule
 name: craigslist
 data_path: data/craigslist/eval.json
-cache_path: null
-reward_shift: 0.0
-reward_scale: 1.0
-reward_f: null

@@ -4,4 +4,3 @@ defaults:
 name: craigslist_list_dataset
 max_len: null
 top_p: null
-bottom_p: null

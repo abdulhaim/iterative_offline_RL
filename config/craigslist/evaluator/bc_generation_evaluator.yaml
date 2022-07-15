@@ -1,0 +1,4 @@
+name: craigslist_bc_generation_evaluator
+kind: sample
+generation_kwargs: {}
+data: null
