@@ -25,7 +25,12 @@ class CraigslistObservation(Language_Observation):
         return sequence, terminal
 
     def __str__(self) -> str:
-        return str(list(map(str, self.event.get_events())))
+        dialogue_str = f'description: {self.scene.description}\n\n'
+        for ev in self.event.get_events():
+            speaker = 'seller' if isinstance(ev, SellerEvent) else 'buyer'
+            dialogue_str += f'{speaker}: {str(ev)}\n'
+        dialogue_str = dialogue_str.strip()
+        return dialogue_str
 
     def metadata(self) -> Optional[Dict[str, Any]]:
         return {'scene': self.scene, 'event': self.event}

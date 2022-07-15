@@ -34,7 +34,8 @@ class CraigslistBCGenerationEvaluator(Evaluator):
             scene = datapoint.meta['scene']
             for ev in datapoint.meta['event'].get_events():
                 if isinstance(ev, SellerEvent):
-                    event = ev.get_events()[-2]
+                    events = ev.get_events()
+                    event = events[-2] if len(events) > 1 else None
                     history = CraigslistObservation(scene, event)
                     generation = policy.act(history)
                     print('='*25)
