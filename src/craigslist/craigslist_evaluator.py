@@ -41,7 +41,7 @@ class CraigslistBCGenerationEvaluator(Evaluator):
                     print('='*25)
                     print(str(history))
                     print("="*25)
-                    print('policy generation:', generation)
+                    print('seller model:', generation)
                     print('='*25)
                     print()
 
