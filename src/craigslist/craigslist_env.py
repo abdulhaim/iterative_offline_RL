@@ -26,6 +26,8 @@ class CraigslistObservation(Language_Observation):
 
     def __str__(self) -> str:
         dialogue_str = f'description: {self.scene.description}\n\n'
+        if self.event is None:
+            return dialogue_str.strip()
         for ev in self.event.get_events():
             speaker = 'seller' if isinstance(ev, SellerEvent) else 'buyer'
             dialogue_str += f'{speaker}: {str(ev)}\n'
