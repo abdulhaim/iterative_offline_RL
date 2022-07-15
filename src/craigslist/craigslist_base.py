@@ -106,17 +106,17 @@ class Scene:
             #         ev.scene = scene
             #     break
             if scene_json['events'][i]['agent'] == 0:
-                if type(scene_json['events'][i]['data']) == dict:
+                if type(scene_json['events'][i]['data']) is dict:
                     continue
-                elif scene_json['events'][i]['data'] == None:
+                elif scene_json['events'][i]['data'] is None:
                     continue
                 else:
                     events.append(BuyerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
                                                 scene_json['events'][i]['time'], 0.0,  None, None, None))
             elif scene_json['events'][i]['agent'] == 1:
-                if type(scene_json['events'][i]['data']) == dict:
+                if type(scene_json['events'][i]['data']) is dict:
                     continue
-                elif scene_json['events'][i]['data'] == None:
+                elif scene_json['events'][i]['data'] is None:
                     continue
                 else:
                     events.append(SellerEvent(scene_json['events'][i]['data'], scene_json['events'][i]['action'],
