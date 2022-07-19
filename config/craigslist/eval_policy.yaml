@@ -26,6 +26,11 @@ evaluator:
       name: bc_policy
       bc_lm:
         name: bc_lm
+        gpt2:
+          name: gpt2
+          gpt2_type: gpt2
+          from_pretrained: true
+          lm_head: true
         dataset:
           name: craigslist_list_dataset
           cache_id: d
@@ -34,11 +39,6 @@ evaluator:
           name: bc_lm
           checkpoint_path: outputs/craigslist/craigslist_buyer_bc_test1/model.pkl
           strict_load: true
-        gpt2:
-          name: gpt2
-          gpt2_type: gpt2
-          from_pretrained: true
-          lm_head: true
       kind: sample
       generation_kwargs: {}
     agent_role: seller
