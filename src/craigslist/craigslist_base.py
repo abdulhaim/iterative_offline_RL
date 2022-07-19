@@ -224,7 +224,7 @@ class Scene:
         if re_match is not None:
             amount = float(re_match.group(1))
             return OfferEvent(expected_role, amount, None, None, None)
-        if event_str.startswith(f'{expected_role.lower()}: '):
+        if event_str.startswith(f'{str(expected_role).lower()}: '):
             return MessageEvent(expected_role, event_str[len(f'{expected_role.lower()}: '):], None, None, None)
         return MessageEvent(expected_role, event_str, None, None, None)
 
