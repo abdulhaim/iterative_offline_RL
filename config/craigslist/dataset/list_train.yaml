@@ -2,5 +2,6 @@ defaults:
  - /craigslist@data: train
  - /token_reward: constant
 name: craigslist_list_dataset
+agent_role: seller
 max_len: null
 top_p: null

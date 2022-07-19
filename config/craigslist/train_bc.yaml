@@ -7,9 +7,11 @@ defaults:
 
 train_dataset:
   cache_id: d_train
+  agent_role: seller
 
 eval_dataset:
   cache_id: d_eval
+  agent_role: seller
 
 model:
   transition_weight: 0.0
@@ -24,11 +26,12 @@ evaluator:
   data:
     name: craigslist_list_dataset
     cache_id: d_eval
+  agent_role: seller
   kind: sample
   generation_kwargs: {}
 
 train:
-  save_checkpoint_dir: outputs/craigslist/craigslist_bc_test1/
+  save_checkpoint_dir: outputs/craigslist/craigslist_seller_bc_test1/
   optim_state_path: null
   epochs: 10000000
   dataloader_workers: 1

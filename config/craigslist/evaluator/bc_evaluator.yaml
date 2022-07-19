@@ -1,5 +1,5 @@
 defaults:
-  - /env: venv
+  - /env: policy_env
 
 name: bc_evaluator
 verbose: true

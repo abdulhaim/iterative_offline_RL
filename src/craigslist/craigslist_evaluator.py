@@ -9,7 +9,7 @@ from data.language_environment import Language_Environment, interact_environment
 from data.rl_data import DataPoint
 from models.utterance_iql_model import PerUtteranceIQL_Policy
 from models.chai_model import ChaiModel, ChaiPolicy
-from craigslist.craigslist_base import BuyerEvent, SellerEvent
+from craigslist.craigslist_base import Role
 from craigslist.craigslist_dataset import CraigslistDataset
 from tqdm import tqdm
 import torch
@@ -19,9 +19,10 @@ import time
 import random
 
 class CraigslistBCGenerationEvaluator(Evaluator):
-    def __init__(self, data: CraigslistDataset, kind: str, generation_kwargs: Dict[str, Any]):
+    def __init__(self, data: CraigslistDataset, agent_role: Role, kind: str, generation_kwargs: Dict[str, Any]):
         super().__init__()
         self.data = data
+        self.agent_role = agent_role
         self.kind = kind
         self.generation_kwargs = generation_kwargs
     
@@ -33,15 +34,15 @@ class CraigslistBCGenerationEvaluator(Evaluator):
             datapoint = self.data.get_item(random.randint(0, self.data.size()-1))
             scene = datapoint.meta['scene']
             for ev in datapoint.meta['event'].get_events():
-                if isinstance(ev, SellerEvent):
+                if ev.role == self.agent_role:
                     events = ev.get_events()
                     event = events[-2] if len(events) > 1 else None
-                    history = CraigslistObservation(scene, event)
+                    history = CraigslistObservation(scene, self.agent_role, event)
                     generation = policy.act(history)
                     print('='*25)
                     print(str(history))
                     print("="*25)
-                    print('seller model:', generation)
+                    print(f'{self.agent_role} model:', generation)
                     print('='*25)
                     print()
 

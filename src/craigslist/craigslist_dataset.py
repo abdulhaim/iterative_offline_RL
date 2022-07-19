@@ -1,13 +1,13 @@
 from typing import Optional
 from data.rl_data import DataPoint, List_RL_Dataset, TokenReward
-from craigslist.craigslist_base import CraigslistDialogueData
+from craigslist.craigslist_base import CraigslistDialogueData, Role
 from craigslist.craigslist_env import CraigslistObservation
 from craigslist.craigslist_tokenizer import CraigslistTokenizer
 import numpy as np
 
-
 class CraigslistDataset(List_RL_Dataset):
     def __init__(self, data: CraigslistDialogueData,
+                 agent_role: Role, 
                  max_len: Optional[int],
                  token_reward: TokenReward,
                  top_p: Optional[float] = None,
@@ -15,9 +15,10 @@ class CraigslistDataset(List_RL_Dataset):
         tokenizer = CraigslistTokenizer()
         super().__init__(tokenizer, token_reward, max_len)
         self.data = data
+        self.agent_role = agent_role
         self.datapoints = []
         for item in self.data:
-            obs = CraigslistObservation(item, item.events[-1])
+            obs = CraigslistObservation(item, self.agent_role, item.events[-1])
             self.datapoints.append(DataPoint.from_obs(obs, self.tokenizer, self.token_reward))
         if top_p is not None:
             total_rs = [sum(item.rewards) for item in self.datapoints]
