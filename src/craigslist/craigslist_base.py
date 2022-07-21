@@ -54,7 +54,15 @@ class Event:
         return self.get_events() + self.get_events('next')[1:]
 
     def is_final(self):
-        return isinstance(self, QuitEvent) or isinstance(self, RejectEvent) or isinstance(self, AcceptEvent)
+        if isinstance(self, QuitEvent):
+            return True
+        if isinstance(self, RejectEvent) or isinstance(self, AcceptEvent):
+            last_offer = None
+            for ev in self.get_events():
+                if isinstance(ev, OfferEvent):
+                    last_offer = ev
+            return last_offer is not None and last_offer.role != self.role
+        return False
 
 @dataclass
 class MessageEvent(Event):
