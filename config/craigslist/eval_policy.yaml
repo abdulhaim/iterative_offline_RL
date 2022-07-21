@@ -46,9 +46,9 @@ evaluator:
 eval:
   dataloader_workers: 1
   bsize: 1
-  batches: 1024
+  batches: 128
   print_every: 8
   seed: 0
-  log_save_path: null
+  log_save_path: outputs/craigslist/eval_logs/seller_v_buyer_bc.pkl
   loss: {}
 

@@ -44,4 +44,4 @@ def load_craigslist_user_env(config, device, verbose=True):
 def load_craigslist_policy_env(config, device, verbose=True):
     dataset = load_item(config['dataset'], device, verbose=verbose)
     policy = load_item(config['policy'], device, verbose=verbose)
-    return CraigslistPolicyEnvironment(policy, dataset, get_agent_role(config['agent_role']))
+    return CraigslistPolicyEnvironment(policy, dataset, get_agent_role(config['agent_role']), max_turns=config['max_turns'])

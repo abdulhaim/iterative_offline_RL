@@ -2,3 +2,4 @@ name: craigslist_policy_env
 dataset: null
 policy: null
 agent_role: seller
+max_turns: null

@@ -75,10 +75,11 @@ class CraigslistUserEnvironment(Language_Environment):
         return self.state.event is not None and self.state.event.is_final()
 
 class CraigslistPolicyEnvironment(Language_Environment):
-    def __init__(self, response_policy: Policy, dataset: RL_Dataset, agent_role: Role):
+    def __init__(self, response_policy: Policy, dataset: RL_Dataset, agent_role: Role, max_turns: Optional[int]):
         self.response_policy = response_policy
         self.dataset = dataset
         self.agent_role = agent_role
+        self.max_turns = max_turns
         self.state = self.reset()
 
     def step(self, action: str) -> Tuple[CraigslistObservation, float, bool]:
@@ -90,7 +91,7 @@ class CraigslistPolicyEnvironment(Language_Environment):
             return self.state, reward, True
         response = self.response_policy.act(self.state.other())
         self.state = self.state.add(Scene.parse_event(response, self.agent_role.other()))
-        if self.state.event is not None and self.state.event.is_final():
+        if self.state.event is not None and (self.state.event.is_final() or (self.max_turns is not None and (len(self.state.event.get_events()) // 2) >= self.max_turns)):
             _, reward = Scene.get_rewards(self.state.scene, self.state.event, self.agent_role)
             return self.state, reward, True
         return self.state, 0.0, False

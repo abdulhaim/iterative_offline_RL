@@ -308,6 +308,7 @@ class BC_Evaluator(Evaluator):
         self.verbose = verbose
         self.kind = kind
         self.generation_kwargs = generation_kwargs
+        self.all_results = []
     
     def evaluate(self, model: BC_LM, items: InputType) -> Optional[Dict[str, Any]]:
         policy = BC_Policy(model, self.kind, **self.generation_kwargs)
@@ -317,6 +318,7 @@ class BC_Evaluator(Evaluator):
         total_env_reward = 0
         for i in range(n):
             result, sequence = interact_environment(self.env, policy, None)
+            self.all_results.append((result, sequence,))
             env_reward = sum(map(lambda x: x[2], sequence))
             token_reward = sum(DataPoint.get_token_reward(result, model.dataset.tokenizer, model.dataset.token_reward))
             total_env_reward += env_reward
@@ -330,3 +332,6 @@ class BC_Evaluator(Evaluator):
                 print('avg env reward:', total_env_reward / (i + 1))
                 print('='*25)
         return {'token_reward': (total_token_reward / n, n), 'env_reward': (total_env_reward / n, n)}
+    
+    def dump(self):
+        return {'all_results': self.all_results}

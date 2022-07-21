@@ -7,15 +7,13 @@ defaults:
 
 train_dataset:
   cache_id: d_train
-  data:
-    reward_cache:
-    mode: agent_stops
+  agent_role: seller
+  max_len: 1000
 
 eval_dataset:
   cache_id: d_eval
-  data:
-    reward_cache:
-    mode: agent_stops
+  agent_role: seller
+  max_len: 1000
 
 model:
   alpha: 0.005
@@ -43,19 +41,36 @@ model:
     name: craigslist_list_dataset
     cache_id: d_train
   load:
-    checkpoint_path: null
-    strict_load: true
+    checkpoint_path: outputs/craigslist/craigslist_seller_bc_test1/model_converted.pkl
+    strict_load: false
 
 evaluator:
   env:
-    url: http://localhost:5000/step_rank
-    actor_stop: false
     dataset:
       name: craigslist_list_dataset
       cache_id: d_eval
-    yn_reward: -2.0
-    yn_reward_kind: hard
-  verbose: true
+    policy:
+      name: bc_policy
+      bc_lm:
+        name: bc_lm
+        gpt2:
+          name: gpt2
+          gpt2_type: gpt2
+          from_pretrained: true
+          lm_head: true
+        dataset:
+          name: craigslist_list_dataset
+          cache_id: d_train
+        transition_weight: 0.0
+        load:
+          name: bc_lm
+          checkpoint_path: outputs/craigslist/craigslist_buyer_bc_test1/model.pkl
+          strict_load: true
+      kind: sample
+      generation_kwargs:
+        max_generation_len: 40
+    agent_role: seller
+    max_turns: 10
   kind: sample
   generation_kwargs:
     max_generation_len: 40
@@ -73,15 +88,15 @@ evaluator:
     rerank_advantage_weight: 1.0
 
 train:
-  save_checkpoint_dir: outputs/craigslist/craigslist_hard_yn_iql_test1/
+  save_checkpoint_dir: outputs/craigslist/craigslist_iql_test1/
   optim_state_path: null
   epochs: 10000000
   dataloader_workers: 1
   bsize: 1
   grad_accum_steps: 64
   log_every: 256
-  eval_every: 10000
-  save_every: 1000
+  eval_every: 1024
+  save_every: 16384
   max_checkpoints: 1
   eval_bsize: 1
   eval_batches: 32
@@ -92,7 +107,7 @@ train:
   loss:
     v_loss_weight: 1.0
     q_loss_weight: 1.0
-    awac_weight: 1.0
+    awac_weight: 0.0
     cql_loss_weight: 1.0
     dm_loss_weight: 0.0
     mc_returns: false
