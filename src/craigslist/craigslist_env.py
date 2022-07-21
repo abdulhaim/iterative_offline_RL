@@ -107,4 +107,4 @@ class CraigslistPolicyEnvironment(Language_Environment):
         return self.state
 
     def is_terminal(self) -> bool:
-        return self.state.event is not None and self.state.event.is_final()
+        return self.state.event is not None and (self.state.event.is_final() or (self.max_turns is not None and (len(self.state.event.get_events()) // 2) >= self.max_turns))
