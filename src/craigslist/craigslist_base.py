@@ -185,7 +185,7 @@ class Scene:
         reward_ev = None
         for i, ev in enumerate(evs):
             if isinstance(ev, OfferEvent):
-                reward = ev.amount / scene.listing_price
+                reward = ev.amount / scene.listing_price if scene.listing_price != 0.0 else 0.0
                 last_offer_idx = i
         if last_offer_idx != -1:
             for ev in evs[(last_offer_idx+1):][::-1]:
