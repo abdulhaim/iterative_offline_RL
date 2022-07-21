@@ -180,21 +180,31 @@ class Scene:
     @staticmethod
     def get_rewards(scene: Scene, last_event: Event, agent_role: Role) -> List[Tuple[Event, float]]:
         evs = last_event.get_events()
-        reward = 0.0
-        last_offer_idx = -1
+        possible_reward = None
+        last_offer_idx = None
+        offer_role = None
         reward_ev = None
+        # check where/if an offer is made
         for i, ev in enumerate(evs):
             if isinstance(ev, OfferEvent):
-                reward = max(ev.amount / scene.listing_price if scene.listing_price != 0.0 else 0.0, 0.0)
+                possible_reward = min(max(ev.amount / scene.listing_price if scene.listing_price != 0.0 else 0.0, 0.0), 100.0)
+                offer_role = ev.role
                 last_offer_idx = i
-        if last_offer_idx != -1:
-            for ev in evs[(last_offer_idx+1):][::-1]:
+        # reward only if offer accepted by other agent
+        reward = 0.0
+        if last_offer_idx is not None:
+            for i in range(len(evs)-1, last_offer_idx, -1):
+                ev = evs[i]
+                if isinstance(ev, AcceptEvent) and ev.role != offer_role:
+                    reward = possible_reward
+                    break
+            for ev in evs[last_offer_idx:][::-1]:
                 if ev.role == agent_role:
                     reward_ev = ev
                     break
         ev_rewards = []
         for ev in evs:
-            if ev is reward_ev:
+            if reward_ev is not None and ev is reward_ev:
                 ev_rewards.append((ev, reward,))
             else:
                 if ev.role == agent_role:
