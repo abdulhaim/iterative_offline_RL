@@ -8,12 +8,12 @@ defaults:
 train_dataset:
   cache_id: d_train
   agent_role: seller
-  max_len: 1000
+  max_len: 983
 
 eval_dataset:
   cache_id: d_eval
   agent_role: seller
-  max_len: 1000
+  max_len: 983
 
 model:
   alpha: 0.005
@@ -95,7 +95,7 @@ train:
   bsize: 1
   grad_accum_steps: 64
   log_every: 256
-  eval_every: 1024
+  eval_every: 8192
   save_every: 16384
   max_checkpoints: 1
   eval_bsize: 1
