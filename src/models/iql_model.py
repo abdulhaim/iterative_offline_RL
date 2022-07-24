@@ -16,6 +16,32 @@ import numpy as np
 import math
 from data.language_environment import Language_Environment, Language_Observation, interact_environment, Policy
 from tqdm.auto import tqdm
+import cvxpy as cp
+
+def find_probs(q, v, pi_beta, beta):
+    q = np.nan_to_num(q, posinf=100, neginf=-100)
+    # print(np.max(q), np.min(q))
+    v = np.nan_to_num(v, posinf=100, neginf=-100)
+    # print(v)
+    pi_beta = np.nan_to_num(pi_beta, posinf=1, neginf=0)
+    # print(np.max(pi_beta), np.min(pi_beta), np.sum(pi_beta))
+    try:
+        q = cp.Constant(q)
+        v = cp.Constant(v)
+        pi_beta = cp.Constant(pi_beta)
+        beta = cp.Constant(beta)
+        pi = cp.Variable(pi_beta.shape)
+        objective = cp.Minimize(cp.sum_squares(cp.sum(cp.multiply(pi, q)) - v)-beta*cp.sum(cp.multiply(pi_beta, cp.log(pi))))
+        constraints = [0 <= pi, pi <= 1, cp.sum(pi) == 1]
+        problem = cp.Problem(objective, constraints)
+        assert problem.is_dpp()
+        _ = problem.solve(verbose=True)
+        probs = np.asarray(pi.value, dtype=np.float32)
+        # print(probs)
+    except:
+        print('solver failed. Falling back on pi_beta.')
+        probs = np.asarray(pi_beta.value, dtype=np.float32)
+    return probs
 
 class TransformerMLP(nn.Module):
     def __init__(self, emb_dim, h_dim, out_dim, dropout):
@@ -827,6 +853,7 @@ class IQL_Policy(Policy):
                  temp=1.0, top_k=None, top_p=None, 
                  exp_adv=False, adv_weight=0.0, adv_clip=None, 
                  include_logits=True, include_adv=True, 
+                 optim_probs=False, 
                  prefix_embs: Optional[torch.Tensor]=None, 
                  prefix_attn_mask: Optional[torch.Tensor]=None, 
                  remove_prefix_position_embs: bool=False):
@@ -899,19 +926,30 @@ class IQL_Policy(Policy):
             edited_logits = process_logits(logits.clone(), temp=temp, top_k=top_k, top_p=top_p)
             
             vs, qs = iql_outputs['target_vs'], iql_outputs['target_qs']
-            if exp_adv:
-                adv_logits = adv_weight * (qs - vs.unsqueeze(2))
-            else:
-                adv_sign = ((qs - vs.unsqueeze(2)) > 0.0).float()
-                adv_logits = adv_weight * adv_sign + (1 - adv_weight) * (1 - adv_sign)
-                adv_logits = torch.log(adv_logits)
-            if adv_clip is not None:
-                adv_logits = torch.clip(adv_logits, max=adv_clip)
-            adv_logits[:, 0, tokenizer.pad_token_id] = torch.where(termination_mask == 1, float('-inf'), 1e7)
-            adv_logits[torch.arange(0, n).to(device), torch.full((n,), 0).to(device), tokens[:, t]] = adv_logits[torch.arange(0, n).to(device), torch.full((n,), 0).to(device), tokens[:, t]].masked_fill_(t < dialogue_lens, 1e7)
+            if not optim_probs:
+                if exp_adv:
+                    adv_logits = adv_weight * (qs - vs.unsqueeze(2))
+                else:
+                    adv_sign = ((qs - vs.unsqueeze(2)) > 0.0).float()
+                    adv_logits = adv_weight * adv_sign + (1 - adv_weight) * (1 - adv_sign)
+                    adv_logits = torch.log(adv_logits)
+                if adv_clip is not None:
+                    adv_logits = torch.clip(adv_logits, max=adv_clip)
+                adv_logits[:, 0, tokenizer.pad_token_id] = torch.where(termination_mask == 1, float('-inf'), 1e7)
+                adv_logits[torch.arange(0, n).to(device), torch.full((n,), 0).to(device), tokens[:, t]] = adv_logits[torch.arange(0, n).to(device), torch.full((n,), 0).to(device), tokens[:, t]].masked_fill_(t < dialogue_lens, 1e7)
 
-            full_logits = (edited_logits if include_logits else 0.0) + (adv_logits if include_adv else 0.0) + base_logits.unsqueeze(1).unsqueeze(2)
-            
+                full_logits = (edited_logits if include_logits else 0.0) + (adv_logits if include_adv else 0.0) + base_logits.unsqueeze(1).unsqueeze(2)
+            else:
+                full_logits = []
+                for i in range(qs.shape[0]):
+                    found_logits = find_probs(qs[i, 0, :].detach().cpu().numpy(), 
+                                              vs[i, 0].detach().cpu().numpy(), 
+                                              torch.softmax(edited_logits[i, 0, :], axis=-1).detach().cpu().numpy(), 
+                                              adv_weight, 
+                                             )
+                    full_logits.append(torch.tensor(found_logits).unsqueeze(0).to(device))
+                full_logits = torch.stack(full_logits, dim=0)
+
             scores = (torch.log(F.softmax(full_logits, dim=-1)).reshape(1, bsize, beam_width, -1).permute(3, 0, 1, 2) + curr_scores).permute(1, 2, 3, 0).reshape(1, bsize, -1)  # (time, batch, k*vocab)
             scores[0, :, vocab_size:] = scores[0, :, vocab_size:].masked_fill_((t == original_dialogue_lens).unsqueeze(1).repeat(1, scores.shape[2]-vocab_size), float('-inf'))
             curr_scores, top_k_ = torch.topk(scores[0, :, :], k=beam_width, dim=1)  # (batch, k), (batch, k)
