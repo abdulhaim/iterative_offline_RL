@@ -8,11 +8,13 @@ defaults:
 train_dataset:
   cache_id: d_train
   agent_role: seller
+  reward_mode: agent_utility
   max_len: 983
 
 eval_dataset:
   cache_id: d_eval
   agent_role: seller
+  reward_mode: agent_utility
   max_len: 983
 
 model:
@@ -29,7 +31,7 @@ model:
   double_q: true
   seperate_policy: true
   seperate_target: true
-  tau: 0.8
+  tau: 0.5
   exp_weights: true
   dm_margin: 0.0
   advanced_mlp: false
@@ -46,6 +48,7 @@ model:
 
 evaluator:
   env:
+    reward_mode: agent_utility
     dataset:
       name: craigslist_list_dataset
       cache_id: d_eval
@@ -79,7 +82,7 @@ evaluator:
     top_k: null
     top_p: null
     exp_adv: true
-    adv_weight: 16.0
+    adv_weight: 8.0
     adv_clip: null
     include_logits: true
     include_adv: true
@@ -88,7 +91,7 @@ evaluator:
     rerank_advantage_weight: 1.0
 
 train:
-  save_checkpoint_dir: outputs/craigslist/craigslist_iql_test1/
+  save_checkpoint_dir: outputs/craigslist/craigslist_iql_tau0.5_cql0.1_test2/
   optim_state_path: null
   epochs: 10000000
   dataloader_workers: 1
@@ -108,7 +111,7 @@ train:
     v_loss_weight: 1.0
     q_loss_weight: 1.0
     awac_weight: 0.0
-    cql_loss_weight: 1.0
+    cql_loss_weight: 0.1
     dm_loss_weight: 0.0
     mc_returns: false
 

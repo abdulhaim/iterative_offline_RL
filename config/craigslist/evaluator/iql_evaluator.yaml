@@ -1,7 +1,7 @@
 defaults:
   - /env: policy_env
 
-name: iql_evaluator
+name: craigslist_iql_evaluator
 verbose: true
 kind: sample
 generation_kwargs: {}

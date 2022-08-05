@@ -51,21 +51,28 @@ def eval(cfg):
     model.eval()
 
     eval_logs = DistributeCombineLogs(accelerator, use_wandb=False)
+    i = 0
+    done = False
     with torch.no_grad():
-        for i, eval_items in tqdm(enumerate(data_loader)):
-            eval_items = to(eval_items, system_cfg['device'])
-            if i >= eval_cfg['batches']:
+        while True:
+            for eval_items in tqdm(data_loader):
+                eval_items = to(eval_items, system_cfg['device'])
+                if (eval_cfg['batches'] is not None) and (i >= eval_cfg['batches']):
+                    done = True
+                    break
+                _, logs, postproc_fs = accelerator.unwrap_model(model).get_loss(eval_items, **eval_cfg['loss'])
+                if evaluator is not None:
+                    evaluator_logs = evaluator.evaluate(accelerator.unwrap_model(model), eval_items)
+                    if evaluator_logs is not None:
+                        logs['evaluation'] = evaluator_logs
+                eval_logs.accum_logs(logs)
+                if (i + 1) % eval_cfg['print_every'] == 0:
+                    eval_total_logs = eval_logs.log(*postproc_fs, 
+                                        partial(label_logs, label='eval'), 
+                                        n=(i+1)*eval_cfg['bsize']*system_cfg['num_processes'])
+                i += 1
+            if eval_cfg['batches'] is None or done:
                 break
-            _, logs, postproc_fs = accelerator.unwrap_model(model).get_loss(eval_items, **eval_cfg['loss'])
-            if evaluator is not None:
-                evaluator_logs = evaluator.evaluate(accelerator.unwrap_model(model), eval_items)
-                if evaluator_logs is not None:
-                    logs['evaluation'] = evaluator_logs
-            eval_logs.accum_logs(logs)
-            if (i + 1) % eval_cfg['print_every'] == 0:
-                eval_total_logs = eval_logs.log(*postproc_fs, 
-                                    partial(label_logs, label='eval'), 
-                                    n=(i+1)*eval_cfg['bsize']*system_cfg['num_processes'])
     eval_total_logs = eval_logs.log(*postproc_fs, 
                                     partial(label_logs, label='eval'), 
                                     n=(i+1)*eval_cfg['bsize']*system_cfg['num_processes'])

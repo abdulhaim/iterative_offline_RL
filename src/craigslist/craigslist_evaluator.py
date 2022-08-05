@@ -9,7 +9,7 @@ from data.language_environment import Language_Environment, interact_environment
 from data.rl_data import DataPoint
 from models.utterance_iql_model import PerUtteranceIQL_Policy
 from models.chai_model import ChaiModel, ChaiPolicy
-from craigslist.craigslist_base import Role
+from craigslist.craigslist_base import AcceptEvent, QuitEvent, RejectEvent, Role
 from craigslist.craigslist_dataset import CraigslistDataset
 from tqdm import tqdm
 import torch
@@ -46,55 +46,94 @@ class CraigslistBCGenerationEvaluator(Evaluator):
                     print('='*25)
                     print()
 
-# class Craigslist_IQL_Evaluator(Evaluator):
-#     def __init__(self, env: Language_Environment, verbose: bool, kind: str, **generation_kwargs) -> None:
-#         super().__init__()
-#         self.env = env
-#         self.verbose = verbose
-#         self.kind = kind
-#         self.generation_kwargs = generation_kwargs
-#         self.act_counts = []
-#         self.all_results = []
-#         # self.all_entropy = []
-#         self.all_time = []
-    
-#     def evaluate(self, model: PerTokenIQL, items: InputType) -> Optional[Dict[str, Any]]:
-#         policy = IQL_Policy(model, self.kind, **self.generation_kwargs)
-#         tokens = model.prepare_inputs(items)['tokens']
-#         total_token_reward = 0
-#         total_env_reward = 0
-#         total_activation_count = 0
-#         for i in range(tokens.shape[0]):
-#             s = time.time()
-#             result, sequence = interact_environment(self.env, policy, None)
-#             self.all_results.append((result, sequence,))
-#             activation_count = sum(map(int, [self.env.yn_reward_f(ev.answer) if self.env.yn_reward_f is not None else 0 for ev in result.event.get_events() if isinstance(ev, AnswerEvent)]))
-#             self.act_counts.append(activation_count / (len(result.event.get_events())/2))
-#             env_reward = sum(map(lambda x: x[2], sequence))
-#             token_reward = sum(DataPoint.get_token_reward(result, model.dataset.tokenizer, model.dataset.token_reward))
-#             total_env_reward += env_reward
-#             total_token_reward += token_reward
-#             total_activation_count += activation_count
-#             if self.verbose:
-#                 print(result)
-#                 print('='*25)
-#                 print('token reward:', token_reward)
-#                 print('env reward:', env_reward)
-#                 print('activation count:', activation_count)
-#                 print('avg token reward:', total_token_reward / (i + 1))
-#                 print('avg env reward:', total_env_reward / (i + 1))
-#                 print('avg activation count:', total_activation_count / (i + 1))
-#                 print('='*25)
-#             e = time.time()
-#             self.all_time.append(e-s)
-#         kl_total = sum(policy.kls_all)
-#         time_total = sum(self.all_time)
-#         print(np.histogram(self.act_counts))
-#         return {'token_reward': (total_token_reward / tokens.shape[0], tokens.shape[0]), 
-#                 'env_reward': (total_env_reward / tokens.shape[0], tokens.shape[0]), 
-#                 'kl': (kl_total / len(policy.kls_all), len(policy.kls_all)), 
-#                 'activation_count': (total_activation_count / tokens.shape[0], tokens.shape[0]), 
-#                 'time': (time_total / len(self.all_time), len(self.all_time))}
+def is_accept(obs: CraigslistObservation):
+    ev = obs.event
+    while ev is not None:
+        if isinstance(ev, AcceptEvent):
+            return True
+        if isinstance(ev, RejectEvent) or isinstance(ev, QuitEvent):
+            return False
+        ev = ev.prev
+    return False
 
-#     def dump(self):
-#         return {'results': self.all_results, 'histogram': self.act_counts, 'time': self.all_time}
+class Craigslist_BC_Evaluator(Evaluator):
+    def __init__(self, env: Language_Environment, verbose: bool, kind: str, **generation_kwargs) -> None:
+        super().__init__()
+        self.env = env
+        self.verbose = verbose
+        self.kind = kind
+        self.generation_kwargs = generation_kwargs
+        self.all_results = []
+
+    def evaluate(self, model: BC_LM, items: InputType) -> Optional[Dict[str, Any]]:
+        policy = BC_Policy(model, self.kind, **self.generation_kwargs)
+        tokens = model.prepare_inputs(items)['tokens']
+        n = tokens.shape[0]
+        total_token_reward = 0
+        total_env_reward = 0
+        total_accept = 0
+        for i in range(n):
+            result, sequence = interact_environment(self.env, policy, None)
+            self.all_results.append((result, sequence,))
+            env_reward = sum(map(lambda x: x[2], sequence))
+            token_reward = sum(DataPoint.get_token_reward(result, model.dataset.tokenizer, model.dataset.token_reward))
+            accept = is_accept(result)
+            total_env_reward += env_reward
+            total_token_reward += token_reward
+            total_accept += float(accept)
+            if self.verbose:
+                print(result)
+                print('='*25)
+                print('token reward:', token_reward)
+                print('env reward:', env_reward)
+                print('avg token reward:', total_token_reward / (i + 1))
+                print('avg env reward:', total_env_reward / (i + 1))
+                print('avg accept:', total_accept / (i + 1))
+                print('='*25)
+        return {'token_reward': (total_token_reward / n, n), 'env_reward': (total_env_reward / n, n), 'accept_rate': (total_accept / n, n)}
+    
+    def dump(self):
+        return {'all_results': self.all_results}
+
+class Craigslist_IQL_Evaluator(Evaluator):
+    def __init__(self, env: Language_Environment, verbose: bool, kind: str, **generation_kwargs) -> None:
+        super().__init__()
+        self.env = env
+        self.verbose = verbose
+        self.kind = kind
+        self.generation_kwargs = generation_kwargs
+        self.all_results = []
+        self.all_entropy = []
+    
+    def evaluate(self, model: PerTokenIQL, items: InputType) -> Optional[Dict[str, Any]]:
+        policy = IQL_Policy(model, self.kind, **self.generation_kwargs)
+        tokens = model.prepare_inputs(items)['tokens']
+        total_token_reward = 0
+        total_env_reward = 0
+        total_accept = 0
+        for i in range(tokens.shape[0]):
+            result, sequence = interact_environment(self.env, policy, None)
+            self.all_results.append((result, sequence,))
+            env_reward = sum(map(lambda x: x[2], sequence))
+            token_reward = sum(DataPoint.get_token_reward(result, model.dataset.tokenizer, model.dataset.token_reward))
+            accept = is_accept(result)
+            total_env_reward += env_reward
+            total_token_reward += token_reward
+            total_accept += float(accept)
+            if self.verbose:
+                print(result)
+                print('='*25)
+                print('token reward:', token_reward)
+                print('env reward:', env_reward)
+                print('avg token reward:', total_token_reward / (i + 1))
+                print('avg env reward:', total_env_reward / (i + 1))
+                print('avg accept:', total_accept / (i + 1))
+                print('='*25)
+        kl_total = sum(policy.kls_all)
+        entropy_total = -sum(policy.logprobs_all)
+        self.all_entropy.extend(policy.logprobs_all)
+        return {'token_reward': (total_token_reward / tokens.shape[0], tokens.shape[0]), 'env_reward': (total_env_reward / tokens.shape[0], tokens.shape[0]), 'kl': (kl_total / len(policy.kls_all), len(policy.kls_all)), 
+                'entropy': (entropy_total / len(policy.logprobs_all), len(policy.logprobs_all)), 'accept_rate': (total_accept / tokens.shape[0], tokens.shape[0])}
+    
+    def dump(self):
+        return {'results': self.all_results, 'entropies': self.all_entropy}

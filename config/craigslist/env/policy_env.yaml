@@ -3,3 +3,4 @@ dataset: null
 policy: null
 agent_role: seller
 max_turns: null
+reward_mode: agent_utility

@@ -126,7 +126,7 @@ class Scene:
     @classmethod
     def from_json(cls, scene_json):
         events = []
-        description = scene_json['scenario']['kbs'][0]['item']['Description'][0]
+        description = ' '.join(scene_json['scenario']['kbs'][0]['item']['Description'])
         listing_price = scene_json['scenario']['kbs'][0]['item']['Price']
         title =  scene_json['scenario']['kbs'][0]['item']['Title']
         for i in range(len(scene_json['events'])):
@@ -186,7 +186,8 @@ class Scene:
         return f'title: {self.title}\ndescription: {self.description}\nlisting_price: {self.listing_price}'
     
     @staticmethod
-    def get_rewards(scene: Scene, last_event: Event, agent_role: Role) -> List[Tuple[Event, float]]:
+    def get_rewards(scene: Scene, last_event: Event, agent_role: Role, 
+                    reject_reward: float, reward_scale: float, clip_bad_deals: bool) -> List[Tuple[Event, float]]:
         evs = last_event.get_events()
         possible_reward = None
         last_offer_idx = None
@@ -195,7 +196,9 @@ class Scene:
         # check where/if an offer is made
         for i, ev in enumerate(evs):
             if isinstance(ev, OfferEvent):
-                possible_reward = min(max(ev.amount / scene.listing_price if scene.listing_price != 0.0 else 0.0, 0.0), 100.0)
+                possible_reward = ev.amount / scene.listing_price
+                if (possible_reward > 1.5 or possible_reward < 0.5) and clip_bad_deals:
+                    possible_reward = reject_reward
                 offer_role = ev.role
                 last_offer_idx = i
         # reward only if offer accepted by other agent
@@ -203,6 +206,9 @@ class Scene:
         if last_offer_idx is not None:
             for i in range(len(evs)-1, last_offer_idx, -1):
                 ev = evs[i]
+                if isinstance(ev, RejectEvent) and ev.role != offer_role:
+                    reward = reject_reward
+                    break
                 if isinstance(ev, AcceptEvent) and ev.role != offer_role:
                     reward = possible_reward
                     break
@@ -213,13 +219,13 @@ class Scene:
         ev_rewards = []
         for ev in evs:
             if reward_ev is not None and ev is reward_ev:
-                ev_rewards.append((ev, reward,))
+                ev_rewards.append((ev, reward*reward_scale,))
             else:
                 if ev.role == agent_role:
                     ev_rewards.append((ev, 0.0,))
                 else:
                     ev_rewards.append((ev, None,))
-        return ev_rewards, reward
+        return ev_rewards, reward*reward_scale
 
     @staticmethod
     def parse_event(event_str: str, expected_role: Role) -> Event:
@@ -257,3 +263,8 @@ class CraigslistDialogueData:
 
     def __getitem__(self, i):
         return self.scenes[i]
+
+reward_modes = {
+    'agent_utility': {'reject_reward': -2.0, 'reward_scale': 10.0, 'clip_bad_deals': True}, 
+    'revenue': {'reject_reward': 0.0, 'reward_scale': 1.0, 'clip_bad_deals': False}, 
+}

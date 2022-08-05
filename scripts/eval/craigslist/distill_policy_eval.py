@@ -17,4 +17,17 @@ if __name__ == "__main__":
     st_err_r = std_r / np.sqrt(len(rs))
     print(d['config'])
     print(f'reward: {mean_r} +- {st_err_r}')
-    print(len(rs))
+    print('accept:', d['all_logs']['eval']['evaluation']['accept_rate'])
+    print(list(d['eval_dump'].keys()))
+    
+    for item, sequence in d['eval_dump']['results']:
+        print('='*25)
+        print(item)
+        print('='*25)
+        print('reward:', sum(map(lambda x: x[2], sequence)))
+        print('='*25)
+        print()
+        response = input('press "x" to stop, press any other key to continue: ')
+        if response.lower() == "x":
+            break
+        print()

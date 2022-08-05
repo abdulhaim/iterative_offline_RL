@@ -3,5 +3,6 @@ defaults:
  - /token_reward: constant
 name: craigslist_list_dataset
 agent_role: seller
+reward_mode: agent_utility
 max_len: null
 top_p: null

@@ -10,7 +10,8 @@ class CraigslistDataset(List_RL_Dataset):
                  agent_role: Role, 
                  max_len: Optional[int],
                  token_reward: TokenReward,
-                 top_p: Optional[float] = None,
+                 reward_mode: str,
+                 top_p: Optional[float] = None, 
                  ) -> None:
         tokenizer = CraigslistTokenizer()
         super().__init__(tokenizer, token_reward, max_len)
@@ -18,7 +19,7 @@ class CraigslistDataset(List_RL_Dataset):
         self.agent_role = agent_role
         self.datapoints = []
         for item in self.data:
-            obs = CraigslistObservation(item, self.agent_role, item.events[-1])
+            obs = CraigslistObservation(item, self.agent_role, reward_mode, item.events[-1])
             self.datapoints.append(DataPoint.from_obs(obs, self.tokenizer, self.token_reward))
         if top_p is not None:
             total_rs = [sum(item.rewards) for item in self.datapoints]

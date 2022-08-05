@@ -1,7 +1,7 @@
 defaults:
   - /env: policy_env
 
-name: bc_evaluator
+name: craigslist_bc_evaluator
 verbose: true
 kind: sample
 generation_kwargs: {}

@@ -1,7 +1,7 @@
 from craigslist.craigslist_base import CraigslistDialogueData, Role
 from craigslist.craigslist_dataset import CraigslistDataset
 from craigslist.craigslist_env import CraigslistPolicyEnvironment, CraigslistUserEnvironment
-from craigslist.craigslist_evaluator import CraigslistBCGenerationEvaluator
+from craigslist.craigslist_evaluator import Craigslist_IQL_Evaluator, Craigslist_BC_Evaluator, CraigslistBCGenerationEvaluator
 # from craigslist.craigslist_env import CraigslistEnvironment
 from load_objects import *
 import pickle as pkl
@@ -27,6 +27,7 @@ def load_craigslist_list_dataset(config, device, verbose=True):
                              get_agent_role(config['agent_role']), 
                              max_len=config['max_len'], 
                              token_reward=token_reward, 
+                             reward_mode=config['reward_mode'], 
                              top_p=config['top_p'])
 
 @register('craigslist_bc_generation_evaluator')
@@ -38,10 +39,20 @@ def load_craigslist_bc_generation_evaluator(config, device, verbose=True):
 @register('craigslist_user_env')
 def load_craigslist_user_env(config, device, verbose=True):
     dataset = load_item(config['dataset'], device, verbose=verbose)
-    return CraigslistUserEnvironment(dataset, get_agent_role(config['agent_role']))
+    return CraigslistUserEnvironment(dataset, get_agent_role(config['agent_role']), reward_mode=config['reward_mode'])
 
 @register('craigslist_policy_env')
 def load_craigslist_policy_env(config, device, verbose=True):
     dataset = load_item(config['dataset'], device, verbose=verbose)
     policy = load_item(config['policy'], device, verbose=verbose)
-    return CraigslistPolicyEnvironment(policy, dataset, get_agent_role(config['agent_role']), max_turns=config['max_turns'])
+    return CraigslistPolicyEnvironment(policy, dataset, get_agent_role(config['agent_role']), reward_mode=config['reward_mode'], max_turns=config['max_turns'])
+
+@register('craigslist_bc_evaluator')
+def load_craigslist_bc_evaluator(config, device, verbose=True):
+    env = load_item(config['env'], device, verbose=verbose)
+    return Craigslist_BC_Evaluator(env=env, verbose=config['verbose'], kind=config['kind'], **config['generation_kwargs'])
+
+@register('craigslist_iql_evaluator')
+def load_craigslist_iql_evaluator(config, device, verbose=True):
+    env = load_item(config['env'], device, verbose=verbose)
+    return Craigslist_IQL_Evaluator(env=env, verbose=config['verbose'], kind=config['kind'], **config['generation_kwargs'])
